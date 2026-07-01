@@ -1,0 +1,47 @@
+flowchart TD
+    user["User / Mentor"]
+    cli["main.py\nMenu-driven CLI"]
+    agent["agent.py\nExpenseAgent intent routing"]
+    rag["rag_pipeline.py\nPolicy loader, cleaner, chunker, TF-IDF retriever"]
+    tools["tools.py\nTool calling layer"]
+    reflect["reflection.py\nSelf-reflection scores"]
+    eval_runner["evaluation.py\nKeyword evaluation"]
+    policies["data/*.md\nExpense policy documents"]
+    expenses["expenses/sample_expenses.csv\nSample claims"]
+    eval_data["eval/test_questions.json\nEvaluation cases"]
+    outputs["outputs/\nFeedback and flagged expense logs"]
+    response["Final answer\nDecision, sources, tool calls, reflection"]
+
+    user --> cli
+    cli --> agent
+    agent --> rag
+    rag --> policies
+    rag --> agent
+    agent --> tools
+    tools --> rag
+    tools --> expenses
+    tools --> outputs
+    tools --> eval_runner
+    eval_runner --> eval_data
+    eval_runner --> agent
+    agent --> reflect
+    reflect --> response
+    agent --> response
+    response --> cli
+    cli --> user
+
+    subgraph Retrieval["Local RAG"]
+        policies
+        rag
+    end
+
+    subgraph Review["Review and Evaluation"]
+        reflect
+        eval_runner
+        eval_data
+    end
+
+    subgraph Persistence["Local Files"]
+        expenses
+        outputs
+    end

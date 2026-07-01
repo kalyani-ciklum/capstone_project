@@ -1,156 +1,77 @@
 # AI Agentic Expense Assistant
 
-A beginner-friendly Python capstone project that demonstrates an AI-agentic
-retrieval augmented generation (RAG) assistant for employee expense management.
-The project runs locally, uses policy documents as its knowledge base, calls
-tools, reflects on answers, and includes a small evaluation workflow.
+A local Python capstone project that answers employee expense policy questions,
+checks expense claims, retrieves policy context, calls tools, reflects on its
+answers, and runs a small evaluation suite.
 
-## Project Overview
+No paid API key is required.
 
-Employees often ask the same questions about meals, travel, approvals, receipts,
-and reimbursement limits. This assistant helps answer those questions using
-local company policy documents instead of paid APIs.
+## What This Project Demonstrates
 
-The assistant can:
+- Menu-driven CLI assistant in `main.py`
+- Agent routing and reasoning in `agent.py`
+- Local RAG retrieval in `rag_pipeline.py`
+- Tool calling in `tools.py`
+- Self-reflection scoring in `reflection.py`
+- Keyword-based evaluation in `evaluation.py`
+- Sample policies, expenses, evaluation questions, and output folders
 
-- Answer expense policy questions
-- Retrieve relevant policy chunks with TF-IDF
-- Check whether a claim is allowed, not allowed, or needs approval
-- Summarize specific policies
-- Flag expenses for review
-- Save user feedback
-- Run a keyword-based evaluation suite
-- Reflect on its own answer quality
+## Technologies Used
 
-## Real-World Problem Statement
+- Python 3
+- scikit-learn
+- TF-IDF retrieval with `TfidfVectorizer`
+- cosine similarity for top-3 policy chunk search
+- Python standard libraries: `csv`, `json`, `pathlib`, `re`, and `datetime`
+- Mermaid diagram in `architecture.mmd`
 
-Finance and HR teams spend time answering repeated policy questions. Employees
-also submit claims that may miss receipts, exceed limits, or need approval. A
-local RAG assistant can reduce confusion by giving grounded answers from policy
-documents and by explaining why a claim is allowed, not allowed, or needs review.
-
-## System Architecture
+## Project Structure
 
 ```text
-User CLI
-  |
-  v
-ExpenseAgent
-  |
-  +-- RAG Pipeline
-  |     +-- Load Markdown policy files
-  |     +-- Clean text
-  |     +-- Split into chunks
-  |     +-- Build TF-IDF vectors
-  |     +-- Retrieve top 3 policy chunks
-  |
-  +-- Tools
-  |     +-- search_policy()
-  |     +-- check_expense()
-  |     +-- summarize_policy()
-  |     +-- flag_expense()
-  |     +-- save_feedback()
-  |     +-- run_evaluation()
-  |
-  +-- Self-Reflection
-        +-- Relevance score
-        +-- Groundedness score
-        +-- Clarity score
+.
+├── main.py
+├── agent.py
+├── rag_pipeline.py
+├── tools.py
+├── reflection.py
+├── evaluation.py
+├── architecture.mmd
+├── data/
+│   ├── approval_policy.md
+│   ├── meal_expense_policy.md
+│   ├── reimbursement_policy.md
+│   └── travel_expense_policy.md
+├── expenses/
+│   └── sample_expenses.csv
+├── eval/
+│   └── test_questions.json
+├── outputs/
+│   └── .gitkeep
+├── requirements.txt
+└── .gitignore
 ```
 
-## Data Preparation
+## How to Run
 
-Policy documents are stored in the `data/` folder as Markdown files:
+Install dependencies:
 
-- `travel_expense_policy.md`
-- `meal_expense_policy.md`
-- `reimbursement_policy.md`
-- `approval_policy.md`
-
-The RAG pipeline loads these files, cleans the text, and splits the text into
-overlapping chunks so the retriever can find relevant sections.
-
-Sample expense claims are stored in:
-
-```text
-expenses/sample_expenses.csv
+```bash
+pip install -r requirements.txt
 ```
 
-## RAG Pipeline
+Run the assistant:
 
-The RAG pipeline is implemented in `rag_pipeline.py`.
-
-It uses:
-
-- `TfidfVectorizer` from scikit-learn
-- cosine similarity
-- top 3 chunk retrieval
-
-No paid API keys are required.
-
-## Agent Reasoning
-
-The agent is implemented in `agent.py`.
-
-For each user request, the agent:
-
-1. Detects the user intent.
-2. Chooses the right tool.
-3. Retrieves relevant policy context when needed.
-4. Decides whether the retrieved context is enough.
-5. Produces a grounded answer.
-6. Explains why a claim is allowed, not allowed, or needs approval.
-7. Runs self-reflection on the response.
-
-## Tool Calling
-
-Tools are implemented in `tools.py`.
-
-Available tools:
-
-- `search_policy(query)`
-- `check_expense(amount, category, description)`
-- `summarize_policy(policy_name)`
-- `flag_expense(expense_id, reason)`
-- `save_feedback(question, answer, rating)`
-- `run_evaluation()`
-
-Example routing:
-
-- "Can I claim dinner worth 900 INR?" calls `check_expense()`
-- "What is the travel policy?" calls `summarize_policy()`
-- "Is taxi reimbursement allowed?" calls `search_policy()`
-- "Run evaluation" calls `run_evaluation()`
-
-## Self-Reflection
-
-After each answer, `reflection.py` scores the response on:
-
-- Relevance
-- Groundedness
-- Clarity
-
-Each score is out of 10 and includes a short explanation plus an improvement
-suggestion.
-
-## Evaluation Method
-
-Evaluation is implemented in `evaluation.py`.
-
-Test questions live in:
-
-```text
-eval/test_questions.json
+```bash
+python main.py
 ```
 
-Each test case contains a question and expected keywords. The evaluation checks
-whether the assistant's answer contains those keywords and reports:
+If your system uses `python3`:
 
-- Passed questions
-- Total questions
-- Percentage score
+```bash
+python3 main.py
+```
 
-## Sample Demo Flow
+## CLI Menu
 
 ```text
 ====================================
@@ -163,40 +84,44 @@ whether the assistant's answer contains those keywords and reports:
 5. Give feedback
 6. Exit
 ====================================
-Enter your choice (1-6): 1
-Ask your question: Are taxi expenses reimbursable?
-
-Answer
-Based on the retrieved expense policy context:
-- Taxi and cab expenses are reimbursable for client meetings...
 ```
 
-## How to Run
+## Sample Inputs for Review
 
-Install dependencies:
+Try these from the menu:
 
-```bash
-pip install -r requirements.txt
+- `Are taxi expenses reimbursable?`
+- `Can I claim dinner worth 900 INR?`
+- `What is the maximum meal reimbursement?`
+- `When does manager approval become necessary?`
+- Run option `4` to execute evaluation.
+
+Expected evaluation result:
+
+```text
+Passed: 4 / 4 (100.00%)
 ```
 
-Run the application:
+## How the Logic Works
 
-```bash
-python main.py
-```
+1. `main.py` collects user input from the CLI.
+2. `agent.py` detects intent and chooses a tool or RAG response path.
+3. `rag_pipeline.py` loads Markdown policy files, cleans text, splits it into
+   chunks, builds TF-IDF vectors, and retrieves the top 3 relevant chunks.
+4. `tools.py` handles policy search, expense checks, summaries, feedback,
+   flagging, and evaluation.
+5. `reflection.py` scores each answer for relevance, groundedness, and clarity.
+6. `evaluation.py` compares answers against expected keywords in
+   `eval/test_questions.json`.
 
-On some macOS systems, use:
+## Architecture Diagram
 
-```bash
-python3 main.py
-```
+Open `architecture.mmd` in any Mermaid-compatible viewer to review the flow.
 
-## Future Improvements
+## Notes for Mentors
 
-- Add a web interface with Streamlit or Flask
-- Add semantic embeddings for better retrieval
-- Store feedback in a database
-- Add more policy documents
-- Add expense anomaly detection
-- Add unit tests for each tool
-- Add role-based approval workflows
+- The assistant is intentionally local and beginner-friendly.
+- RAG is implemented without external LLM APIs.
+- Runtime feedback and flagged expense CSV files are ignored by Git through
+  `outputs/*.csv`.
+- `outputs/.gitkeep` keeps the output directory present in the repository.
