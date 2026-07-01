@@ -1,0 +1,7 @@
+expense_id,date,employee,amount,currency,category,description,status
+E001,2026-06-01,Asha Mehta,450,INR,Meal,Client lunch during project review,Submitted
+E002,2026-06-03,Ravi Kumar,1800,INR,Travel,Taxi from airport to client office,Needs Review
+E003,2026-06-05,Neha Shah,900,INR,Meal,Dinner after late-night deployment,Needs Approval
+E004,2026-06-08,Imran Khan,5200,INR,Travel,Hotel stay during approved business trip,Needs Approval
+E005,2026-06-10,Priya Rao,600,INR,Reimbursement,Office stationery with receipt,Submitted
+E006,2026-06-11,Dev Patel,700,INR,Meal,Team lunch without client meeting,Needs Review

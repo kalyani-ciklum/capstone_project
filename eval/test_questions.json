@@ -1,0 +1,18 @@
+[
+  {
+    "question": "Can I claim lunch?",
+    "expected_keywords": ["lunch", "500"]
+  },
+  {
+    "question": "What is the maximum meal reimbursement?",
+    "expected_keywords": ["breakfast", "250", "lunch", "500", "dinner", "800"]
+  },
+  {
+    "question": "Are taxi expenses reimbursable?",
+    "expected_keywords": ["taxi", "business", "1500"]
+  },
+  {
+    "question": "When does manager approval become necessary?",
+    "expected_keywords": ["manager", "approval", "5000"]
+  }
+]

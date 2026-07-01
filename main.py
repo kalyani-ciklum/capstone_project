@@ -1,118 +1,166 @@
-"""Menu-driven command line interface for the Expense Tracker project."""
+"""Command line interface for the AI Agentic Expense Assistant."""
 
-from expense_manager import (
-    add_expense,
-    delete_expense,
-    get_all_expenses,
-    search_expense,
-)
-from reports import monthly_report, total_spending
-from storage import load_csv, save_csv
-from utils import display_expenses, pause, prompt_non_empty
-
-CSV_FILE = "expenses.csv"
+from agent import ExpenseAgent
 
 
-def display_menu():
-    """Print the main application menu."""
-    print("\n==================================")
-    print("      EXPENSE TRACKER")
-    print("==================================")
-    print("1. Add Expense")
-    print("2. View All Expenses")
-    print("3. Search by Category")
-    print("4. Show Total Spending")
-    print("5. Monthly Report")
-    print("6. Delete Expense")
-    print("7. Save Data")
-    print("8. Exit")
-    print("==================================")
+def print_menu():
+    """Display the main menu."""
+    print("\n====================================")
+    print(" AI AGENTIC EXPENSE ASSISTANT")
+    print("====================================")
+    print("1. Ask an expense policy question")
+    print("2. Check an expense claim")
+    print("3. Summarize a policy")
+    print("4. Run evaluation")
+    print("5. Give feedback")
+    print("6. Exit")
+    print("====================================")
 
 
-def handle_search(expenses):
-    """Ask for a category and show matching expenses."""
-    category = prompt_non_empty("Enter category to search: ")
-    matches = search_expense(expenses, category)
-
-    if matches:
-        print(f"\nExpenses found in category '{category}':")
-        display_expenses(matches)
-        print(f"Category total: ${total_spending(matches):.2f}")
-    else:
-        print(f"\nNo expenses found in category '{category}'.")
-
-
-def handle_monthly_report(expenses):
-    """Ask for a month and display that month's spending report."""
+def prompt_non_empty(message):
+    """Prompt until the user enters non-empty text."""
     while True:
-        month = input("Enter month (YYYY-MM): ").strip()
+        value = input(message).strip()
+        if value:
+            return value
+        print("Input cannot be empty. Please try again.")
 
-        if len(month) == 7 and month[4] == "-":
-            year_part, month_part = month.split("-")
 
-            if year_part.isdigit() and month_part.isdigit():
-                month_number = int(month_part)
+def prompt_amount():
+    """Prompt until the user enters a valid positive amount."""
+    while True:
+        raw_amount = input("Enter amount in INR: ").strip()
+        try:
+            amount = float(raw_amount)
+        except ValueError:
+            print("Amount must be numeric. Example: 900")
+            continue
 
-                if 1 <= month_number <= 12:
-                    break
+        if amount <= 0:
+            print("Amount must be greater than zero.")
+            continue
 
-        print("Invalid month. Please use YYYY-MM format, for example 2026-07.")
+        return amount
 
-    report = monthly_report(expenses, month)
 
-    if not report["expenses"]:
-        print(f"\nNo expenses found for {month}.")
+def prompt_rating():
+    """Prompt until the user enters a rating from 1 to 5."""
+    while True:
+        raw_rating = input("Enter rating from 1 to 5: ").strip()
+        if raw_rating.isdigit() and 1 <= int(raw_rating) <= 5:
+            return int(raw_rating)
+        print("Rating must be a number from 1 to 5.")
+
+
+def print_reflection(reflection):
+    """Display the self-reflection result from the agent."""
+    print("\nSelf-Reflection")
+    for area in ("relevance", "groundedness", "clarity"):
+        item = reflection[area]
+        print(f"- {area.title()}: {item['score']}/10 - {item['explanation']}")
+    print(f"- Improvement: {reflection['improvement_suggestion']}")
+
+
+def print_sources(sources):
+    """Display policy chunks used by the assistant."""
+    if not sources:
         return
 
-    print(f"\nMonthly Report for {month}")
-    display_expenses(report["expenses"])
-    print(f"Monthly total: ${report['total']:.2f}")
-
-    if report["categories"]:
-        print("\nSpending by category:")
-        for category, amount in report["categories"].items():
-            print(f"- {category}: ${amount:.2f}")
+    print("\nRetrieved Policy Context")
+    for index, source in enumerate(sources, start=1):
+        print(
+            f"{index}. {source['source']} "
+            f"(score: {source['score']:.3f}, chunk: {source['chunk_id']})"
+        )
 
 
-def run_app():
-    """Run the main program loop."""
-    expenses = load_csv(CSV_FILE)
-    print(f"Loaded {len(expenses)} expense(s) from {CSV_FILE}.")
+def print_agent_response(response):
+    """Display a complete agent response."""
+    print("\nAnswer")
+    print(response["answer"])
+
+    if response.get("tool_calls"):
+        print("\nTool Calls")
+        for tool_call in response["tool_calls"]:
+            print(f"- {tool_call}")
+
+    print_sources(response.get("sources", []))
+
+    if response.get("reflection"):
+        print_reflection(response["reflection"])
+
+
+def run_cli():
+    """Run the menu-driven application."""
+    agent = ExpenseAgent()
+    last_question = ""
+    last_answer = ""
 
     while True:
-        display_menu()
-        choice = input("Enter your choice (1-8): ").strip()
+        print_menu()
+        choice = input("Enter your choice (1-6): ").strip()
 
         if choice == "1":
-            add_expense(expenses)
-            pause()
+            question = prompt_non_empty("Ask your question: ")
+            response = agent.answer_question(question)
+            print_agent_response(response)
+            last_question = question
+            last_answer = response["answer"]
+
         elif choice == "2":
-            display_expenses(get_all_expenses(expenses))
-            pause()
+            amount = prompt_amount()
+            category = prompt_non_empty("Enter category: ")
+            description = prompt_non_empty("Enter description: ")
+            response = agent.check_expense_claim(amount, category, description)
+            print_agent_response(response)
+            last_question = (
+                f"Check expense: {amount:.2f} INR, "
+                f"{category}, {description}"
+            )
+            last_answer = response["answer"]
+
         elif choice == "3":
-            handle_search(expenses)
-            pause()
+            policy_name = prompt_non_empty(
+                "Enter policy name (travel, meal, reimbursement, approval): "
+            )
+            response = agent.summarize_policy(policy_name)
+            print_agent_response(response)
+            last_question = f"Summarize {policy_name} policy"
+            last_answer = response["answer"]
+
         elif choice == "4":
-            print(f"\nTotal spending: ${total_spending(expenses):.2f}")
-            pause()
+            response = agent.run_evaluation()
+            print("\nEvaluation Result")
+            print(
+                f"Passed: {response['passed']} / {response['total']} "
+                f"({response['percentage']:.2f}%)"
+            )
+            for result in response["results"]:
+                status = "PASS" if result["passed"] else "FAIL"
+                print(f"- {status}: {result['question']}")
+            last_question = "Run evaluation"
+            last_answer = (
+                f"Passed {response['passed']} out of {response['total']} "
+                f"questions."
+            )
+
         elif choice == "5":
-            handle_monthly_report(expenses)
-            pause()
+            if not last_question or not last_answer:
+                print("\nNo previous answer found. Enter feedback manually.")
+                last_question = prompt_non_empty("Question: ")
+                last_answer = prompt_non_empty("Answer: ")
+
+            rating = prompt_rating()
+            result = agent.save_feedback(last_question, last_answer, rating)
+            print(result["message"])
+
         elif choice == "6":
-            delete_expense(expenses)
-            pause()
-        elif choice == "7":
-            save_csv(CSV_FILE, expenses)
-            print("Data saved successfully.")
-            pause()
-        elif choice == "8":
-            save_csv(CSV_FILE, expenses)
-            print("Data saved successfully. Goodbye!")
+            print("Goodbye!")
             break
+
         else:
-            print("Invalid choice. Please enter a number from 1 to 8.")
-            pause()
+            print("Invalid choice. Please enter a number from 1 to 6.")
 
 
 if __name__ == "__main__":
-    run_app()
+    run_cli()
