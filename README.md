@@ -1,16 +1,18 @@
 # AI Agentic Expense Assistant
 
 A local Python capstone project that answers employee expense policy questions,
-checks expense claims, retrieves policy context, calls tools, reflects on its
-answers, and runs a small evaluation suite.
+checks expense claims, retrieves policy context, optionally uses Gemini for
+answer wording, calls tools, reflects on its answers, and runs a small
+evaluation suite.
 
-No paid API key is required.
+No API key is required for the local RAG path. Gemini is optional.
 
 ## What This Project Demonstrates
 
 - Menu-driven CLI assistant in `main.py`
 - Agent routing and reasoning in `agent.py`
 - Local RAG retrieval in `rag_pipeline.py`
+- Optional Gemini client in `llm/llm_client.py`
 - Tool calling in `tools.py`
 - Self-reflection scoring in `reflection.py`
 - Keyword-based evaluation in `evaluation.py`
@@ -20,6 +22,8 @@ No paid API key is required.
 
 - Python 3
 - scikit-learn
+- google-genai, optional Gemini client
+- python-dotenv, optional `.env` loading
 - TF-IDF retrieval with `TfidfVectorizer`
 - cosine similarity for top-3 policy chunk search
 - Python standard libraries: `csv`, `json`, `pathlib`, `re`, and `datetime`
@@ -36,6 +40,9 @@ No paid API key is required.
 ├── reflection.py
 ├── evaluation.py
 ├── architecture.mmd
+├── llm/
+│   ├── __init__.py
+│   └── llm_client.py
 ├── data/
 │   ├── approval_policy.md
 │   ├── meal_expense_policy.md
@@ -47,6 +54,7 @@ No paid API key is required.
 │   └── test_questions.json
 ├── outputs/
 │   └── .gitkeep
+├── .env.example
 ├── requirements.txt
 └── .gitignore
 ```
@@ -57,6 +65,19 @@ Install dependencies:
 
 ```bash
 pip install -r requirements.txt
+```
+
+Optional Gemini setup:
+
+```bash
+cp .env.example .env
+```
+
+Then edit `.env`:
+
+```text
+GEMINI_API_KEY=your_api_key_here
+GEMINI_MODEL=gemini-2.5-flash
 ```
 
 Run the assistant:
@@ -108,10 +129,12 @@ Passed: 4 / 4 (100.00%)
 2. `agent.py` detects intent and chooses a tool or RAG response path.
 3. `rag_pipeline.py` loads Markdown policy files, cleans text, splits it into
    chunks, builds TF-IDF vectors, and retrieves the top 3 relevant chunks.
-4. `tools.py` handles policy search, expense checks, summaries, feedback,
+4. `llm/llm_client.py` optionally sends grounded prompts to Gemini with retry
+   handling when `GEMINI_API_KEY` is configured.
+5. `tools.py` handles policy search, expense checks, summaries, feedback,
    flagging, and evaluation.
-5. `reflection.py` scores each answer for relevance, groundedness, and clarity.
-6. `evaluation.py` compares answers against expected keywords in
+6. `reflection.py` scores each answer for relevance, groundedness, and clarity.
+7. `evaluation.py` compares answers against expected keywords in
    `eval/test_questions.json`.
 
 ## Architecture Diagram
@@ -121,7 +144,7 @@ Open `architecture.mmd` in any Mermaid-compatible viewer to review the flow.
 ## Notes for Mentors
 
 - The assistant is intentionally local and beginner-friendly.
-- RAG is implemented without external LLM APIs.
+- RAG works without external LLM APIs; Gemini enhancement is optional.
 - Runtime feedback and flagged expense CSV files are ignored by Git through
   `outputs/*.csv`.
 - `outputs/.gitkeep` keeps the output directory present in the repository.

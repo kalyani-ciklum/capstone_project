@@ -3,6 +3,8 @@ flowchart TD
     cli["main.py\nMenu-driven CLI"]
     agent["agent.py\nExpenseAgent intent routing"]
     rag["rag_pipeline.py\nPolicy loader, cleaner, chunker, TF-IDF retriever"]
+    llm["llm/llm_client.py\nOptional Gemini client with retries"]
+    env[".env\nGEMINI_API_KEY"]
     tools["tools.py\nTool calling layer"]
     reflect["reflection.py\nSelf-reflection scores"]
     eval_runner["evaluation.py\nKeyword evaluation"]
@@ -17,6 +19,9 @@ flowchart TD
     agent --> rag
     rag --> policies
     rag --> agent
+    agent --> llm
+    env --> llm
+    llm --> agent
     agent --> tools
     tools --> rag
     tools --> expenses
@@ -33,6 +38,11 @@ flowchart TD
     subgraph Retrieval["Local RAG"]
         policies
         rag
+    end
+
+    subgraph OptionalLLM["Optional LLM Enhancement"]
+        env
+        llm
     end
 
     subgraph Review["Review and Evaluation"]

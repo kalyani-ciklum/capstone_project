@@ -12,7 +12,8 @@ def run_evaluation():
     from agent import ExpenseAgent
 
     test_cases = _load_test_cases()
-    agent = ExpenseAgent()
+    # Keep evaluation deterministic by using the local RAG answer path.
+    agent = ExpenseAgent(use_llm=False)
     results = []
 
     for test_case in test_cases:

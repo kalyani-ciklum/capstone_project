@@ -2,6 +2,7 @@
 
 import re
 
+from llm.llm_client import ask_llm, is_llm_enabled
 from reflection import reflect_on_answer
 from tools import (
     check_expense,
@@ -15,6 +16,10 @@ from tools import (
 
 class ExpenseAgent:
     """A simple agentic assistant for expense policy questions."""
+
+    def __init__(self, use_llm=True):
+        """Create an agent with optional LLM enhancement."""
+        self.use_llm = use_llm
 
     def answer_question(self, question):
         """Answer a policy question using retrieved policy context."""
@@ -52,12 +57,25 @@ class ExpenseAgent:
         policy_result = search_policy(question)
         sources = policy_result["results"]
         context_enough = bool(sources and sources[0]["score"] > 0.05)
-        answer = self._compose_policy_answer(question, sources, context_enough)
+        local_answer = self._compose_policy_answer(
+            question,
+            sources,
+            context_enough,
+        )
+        answer, used_llm = self._maybe_enhance_with_llm(
+            question,
+            sources,
+            local_answer,
+        )
         reflection = reflect_on_answer(question, answer, sources)
+        tool_calls = [f"search_policy({question!r})"]
+
+        if used_llm:
+            tool_calls.append("ask_llm(prompt)")
 
         return {
             "answer": answer,
-            "tool_calls": [f"search_policy({question!r})"],
+            "tool_calls": tool_calls,
             "sources": sources,
             "reflection": reflection,
         }
@@ -218,9 +236,38 @@ class ExpenseAgent:
             question,
             re.IGNORECASE,
         )
-        reason = reason_match.group(1).strip() if reason_match else "Manual review requested."
+        if reason_match:
+            reason = reason_match.group(1).strip()
+        else:
+            reason = "Manual review requested."
 
         return expense_id, reason
+
+    def _maybe_enhance_with_llm(self, question, sources, local_answer):
+        """Use Gemini for wording when configured, otherwise keep local answer."""
+        if not self.use_llm or not is_llm_enabled():
+            return local_answer, False
+
+        context = "\n\n".join(source["text"] for source in sources)
+        prompt = (
+            "You are an employee expense policy assistant.\n"
+            "Answer only from the policy context below. Do not invent rules.\n"
+            "Keep the answer concise and include approval conditions.\n\n"
+            f"Question:\n{question}\n\n"
+            f"Policy context:\n{context}\n\n"
+            f"Deterministic draft answer:\n{local_answer}\n\n"
+            "Final answer:"
+        )
+
+        try:
+            llm_answer = ask_llm(prompt)
+        except Exception:
+            return local_answer, False
+
+        if not llm_answer or "LLM" in llm_answer[:40]:
+            return local_answer, False
+
+        return llm_answer, True
 
     def _compose_policy_answer(self, question, sources, context_enough):
         """Create a grounded answer from retrieved policy chunks."""
